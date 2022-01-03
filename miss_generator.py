@@ -69,7 +69,7 @@ def generate_missing_value_mask(num_tuples, num_attr, miss_rate, complete_ratio)
     # print('num_miss_items: ', num_miss_items)
     num_miss_items_distribution = gen_rand_nums_given_sum(num_incomplete_tuples, num_miss_items, num_attr)
     np.random.shuffle(num_miss_items_distribution) 
-    # print('num_miss_items_distribution: ', num_miss_items_distribution)
+    # print('num_miss_items_distribution: ', num_miss_items_distribution, ', ', len(num_miss_items_distribution))
 
     for _tuple_idx, _num_miss in zip(incomplete_tuples_idx, num_miss_items_distribution): 
         _miss_attr_idx = np.random.choice(num_attr, _num_miss, replace=False)  # random select without replacement!!
