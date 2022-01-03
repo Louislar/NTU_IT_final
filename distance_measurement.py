@@ -16,10 +16,10 @@ def nan_euclidean_with_categorical(X: np.array, Y: np.array, missing_values, cat
     iterator = itertools.product(range(X.shape[0]), range(Y.shape[0]))
     for i, j in iterator: 
         nan_mask = np.isnan(X[i]) | np.isnan(Y[j])
-        print(X[i])
-        print(X)
-        print(X.shape)
-        print(nan_mask)
+        # print(X[i])
+        # print(X)
+        # print(X.shape)
+        # print(nan_mask)
         # No nan and categorical or numerical
         X_nnan_cat = X[i, ~nan_mask & categorical_mask]
         Y_nnan_cat = Y[j, ~nan_mask & categorical_mask]
@@ -42,6 +42,10 @@ def nan_euclidean_with_categorical(X: np.array, Y: np.array, missing_values, cat
     return out
 
 def paired_nan_euclidean_with_categorical(X: np.array, Y: np.array, missing_values, categorical_mask): 
+    '''
+    Same as the nan_euclidean_with_categorical(), 
+    but the input arrays are one tuple/record/row. 
+    '''
     nan_mask = np.isnan(X) | np.isnan(Y)
     # print(X)
     # print(X.shape)
