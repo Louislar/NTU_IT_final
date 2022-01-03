@@ -19,7 +19,7 @@ full_X, miss_X, miss_mask = load_iris_miss(0.1, 0.5)
 cat_mask = np.full(full_X.shape[1], False)
 cat_mask[-1] = True
 
-
+# Numerical imputer
 imputer = KNNImputer(
     n_neighbors=5, 
     metric=lambda X,Y,**kwds: paired_nan_euclidean_with_categorical(X,Y,categorical_mask=cat_mask,**kwds)
@@ -27,6 +27,9 @@ imputer = KNNImputer(
 X_pred = imputer.fit_transform(miss_X)
 print(X_pred.shape)
 print(X_pred[miss_mask].shape)
+
+# Categorical imputer
+# TODO: Use KNN_impute_categorical.KNN_impute_vote impute the categorical attribute
 
 # Evaluation metric
 print('MSE: ', mean_squared_error(full_X[miss_mask], X_pred[miss_mask]))
