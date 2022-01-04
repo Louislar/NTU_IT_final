@@ -14,8 +14,8 @@ def KNN_impute_voting(k, dataset, pairwise_dis_func):
     # Not nan tuples in each attribute
     not_na_tuple_idx = [np.where(~na_mask[:,i])[0] for i in range(dataset.shape[1])]
     have_na_tuple_idx=np.argwhere(np.sum(na_mask, axis=1)>0).T[0]
-    print(dis.shape)
-    print(have_na_tuple_idx)
+    # print(dis.shape)
+    # print(have_na_tuple_idx)
     for _idx in have_na_tuple_idx: 
         _dis = dis[_idx]
         # print(_dis)
