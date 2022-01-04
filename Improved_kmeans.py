@@ -1,5 +1,5 @@
 import numpy as np
-from numpy.core.numeric import full
+import scipy.stats as st
 from scipy.spatial import distance
 from sklearn.preprocessing import normalize
 from sklearn.preprocessing import MinMaxScaler
@@ -72,11 +72,20 @@ class KMeans:
         self.centroids = np.array([np.mean(X[self.labels == k], axis=0)  for k in range(self.K)])
 
 def imporved_kmeans_impute(k, cat_mask, dataset, pairwise_dis_func): 
-    # 1. TODO: prefill with mean and mode 
+    # 1. prefill with mean and mode 
     imputed_dataset=dataset.copy()
+    na_mask = np.isnan(dataset)
+    mean_n_mode = np.empty(dataset.shape[1])
+    mean_n_mode[~cat_mask] = np.nanmean(dataset[:, ~cat_mask], axis=0)
+    mean_n_mode[cat_mask] = st.mode(dataset[:, cat_mask], nan_policy='omit')[0][0]
+    expand_mean_n_mode = np.repeat(mean_n_mode[np.newaxis, :], dataset.shape[0], axis=0)
+    imputed_dataset[na_mask] = expand_mean_n_mode[na_mask]
     # 2. k-means with mahalanobis distance
+    kmeans_est = KMeans(n_clusters=3)
+    kmeans_est.fit(imputed_dataset)
+    print(kmeans_est.labels)
     # 3. TODO: Impute by Entropy weight method
-    pass
+    
 
 if __name__=="__main__": 
     # Get dataset
@@ -87,12 +96,13 @@ if __name__=="__main__":
     cat_mask[-1] = True
     
     est = KMeans(n_clusters=3)
-    est.fit(full_X)
+    est.fit(full_X[:, :-1])
     print(est.labels)
     print(full_X[:,-1])
-    # imporved_kmeans_impute(
-    #     3, 
-    #     cat_mask, 
-    #     miss_X, 
-    #     lambda X,Y: nan_euclidean_with_categorical(X, Y, np.nan, cat_mask)
-    # )
+
+    imporved_kmeans_impute(
+        3, 
+        cat_mask, 
+        miss_X, 
+        lambda X,Y: nan_euclidean_with_categorical(X, Y, np.nan, cat_mask)
+    )
