@@ -70,6 +70,9 @@ def paired_nan_euclidean_with_categorical(X: np.array, Y: np.array, missing_valu
     # print('-------')
     return _distance
 
+def paired_nan_mahalanobis_with_categorical(): 
+    pass
+
 if __name__=="__main__": 
     X = np.array([[0, 1, 2, np.nan, 5], [1, np.nan, 2, 2, 2]])
     dis=nan_euclidean_with_categorical(X, X, missing_values=np.nan, categorical_mask=np.array([True, False, False, False, False]))
