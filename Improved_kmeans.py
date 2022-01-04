@@ -72,10 +72,10 @@ class KMeans:
         self.centroids = np.array([np.mean(X[self.labels == k], axis=0)  for k in range(self.K)])
 
 def imporved_kmeans_impute(k, cat_mask, dataset, pairwise_dis_func): 
-    # 1. prefill with mean and mode 
+    # 1. TODO: prefill with mean and mode 
     imputed_dataset=dataset.copy()
     # 2. k-means with mahalanobis distance
-    # 3. Impute by Entropy weight method
+    # 3. TODO: Impute by Entropy weight method
     pass
 
 if __name__=="__main__": 
@@ -85,13 +85,7 @@ if __name__=="__main__":
     # (In iris dataset the last one is categorical)
     cat_mask = np.full(full_X.shape[1], False)
     cat_mask[-1] = True
-
-    # x = [[-2.1, -1,  4.3], [3,  1.1,  0.12]]
-    # y = [3,  1.1,  0.12]
-    # print(np.apply_along_axis(lambda input: np.cov(input,y), 1, x))
-    # print(np.linalg.pinv(np.apply_along_axis(lambda input: np.cov(input,y), 1, x)))
-    # print(np.linalg.inv(np.apply_along_axis(lambda input: np.cov(input,y), 1, x)[0]))
-    # print(np.linalg.pinv(np.apply_along_axis(lambda input: np.cov(input,y), 1, x)[1]))
+    
     est = KMeans(n_clusters=3)
     est.fit(full_X)
     print(est.labels)
