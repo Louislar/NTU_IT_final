@@ -1,5 +1,5 @@
 import numpy as np
-from numpy.core.numeric import full
+import scipy.stats as st
 from scipy.spatial import distance
 from sklearn.preprocessing import normalize
 from sklearn.preprocessing import MinMaxScaler
@@ -71,12 +71,70 @@ class KMeans:
     def update_centroid(self, X):
         self.centroids = np.array([np.mean(X[self.labels == k], axis=0)  for k in range(self.K)])
 
-def imporved_kmeans_impute(k, cat_mask, dataset, pairwise_dis_func): 
-    # 1. TODO: prefill with mean and mode 
+def imporved_kmeans_impute(k, t, cat_mask, dataset, pairwise_dis_func): 
+    '''
+    Input: 
+    :k: k in k-means clustering
+    :t: t most similar tuples/samples will used to compute the EWM's weight
+    :cat_mask: categorical mask, true if the attribute is categorical
+    '''
+    # 1. prefill with mean and mode 
     imputed_dataset=dataset.copy()
+    na_mask = np.isnan(dataset)
+    mean_n_mode = np.empty(dataset.shape[1])
+    mean_n_mode[~cat_mask] = np.nanmean(dataset[:, ~cat_mask], axis=0)
+    mean_n_mode[cat_mask] = st.mode(dataset[:, cat_mask], nan_policy='omit')[0][0]
+    expand_mean_n_mode = np.repeat(mean_n_mode[np.newaxis, :], dataset.shape[0], axis=0)
+    imputed_dataset[na_mask] = expand_mean_n_mode[na_mask]
     # 2. k-means with mahalanobis distance
-    # 3. TODO: Impute by Entropy weight method
-    pass
+    kmeans_est = KMeans(n_clusters=k)
+    kmeans_est.fit(imputed_dataset)
+    print(kmeans_est.labels)
+    # 3. TODO: Impute by Entropy weight method(Only use complete sample to impute)
+    complete_idx = np.where(np.sum(na_mask, axis=1)==0)[0]
+    for _cluster_i in range(k): 
+        _within_cluster_idx = np.where(kmeans_est.labels==_cluster_i)[0]
+        _within_cluster_complete_idx = _within_cluster_idx[np.isin(_within_cluster_idx, complete_idx)]
+        _within_cluster_incomplete_idx = _within_cluster_idx[~np.isin(_within_cluster_idx, complete_idx)]
+        _attr_max = np.max(dataset[_within_cluster_complete_idx], axis=0)
+        # print(_within_cluster_incomplete_idx)
+        def _sim(x, y):
+            '''
+            similarity between incomplete sample/tuple x, and complete sample y
+            TODO: nemerical and categorical attribute need different similarity calculation
+            '''
+            _na_mask = np.isnan(x)
+            _ret_sim = 0
+            _ret_sim += np.sum( 1 - np.divide(np.abs(x[~_na_mask]-y[~_na_mask]), _attr_max[~_na_mask]) )
+            return _ret_sim
+            
+        for _incomplete_idx in _within_cluster_incomplete_idx: 
+            _sim_incom_com = np.apply_along_axis(
+                lambda x: _sim(dataset[_incomplete_idx], x), 
+                1, 
+                dataset[_within_cluster_complete_idx]
+            )
+            _sorted_idx = np.argsort(_sim_incom_com)[::-1]
+            _sorted_sim_complete_idx = _within_cluster_complete_idx[_sorted_idx]
+            _sorted_sim_complete_sim = _sim_incom_com[_sorted_idx]
+            # if number of complete samples in cluster < t, use all of them
+            if _within_cluster_complete_idx.shape[0] > t: 
+                _sorted_sim_complete_idx = _sorted_sim_complete_idx[:t]
+                _sorted_sim_complete_sim = _sorted_sim_complete_sim[:t]
+            print(_sorted_sim_complete_idx)
+            _sorted_sim_complete_sim = _sorted_sim_complete_sim / np.sum(_sorted_sim_complete_sim)
+            _sorted_sim_complete_entropy = -1 * np.multiply(_sorted_sim_complete_sim, np.log(_sorted_sim_complete_sim))
+            _sorted_sim_complete_weight = (1-_sorted_sim_complete_entropy) / (t-np.sum(_sorted_sim_complete_entropy))
+            print(_sorted_sim_complete_sim)
+            print(_sorted_sim_complete_entropy)
+            print(_sorted_sim_complete_weight)
+            # TODO: impute numerical
+            # TODO: impute categorical
+
+            exit()
+        pass
+
+    
 
 if __name__=="__main__": 
     # Get dataset
@@ -87,12 +145,14 @@ if __name__=="__main__":
     cat_mask[-1] = True
     
     est = KMeans(n_clusters=3)
-    est.fit(full_X)
-    print(est.labels)
+    est.fit(full_X[:, :-1])
+    # print(est.labels)
     print(full_X[:,-1])
-    # imporved_kmeans_impute(
-    #     3, 
-    #     cat_mask, 
-    #     miss_X, 
-    #     lambda X,Y: nan_euclidean_with_categorical(X, Y, np.nan, cat_mask)
-    # )
+
+    imporved_kmeans_impute(
+        3, 
+        5, 
+        cat_mask, 
+        miss_X, 
+        lambda X,Y: nan_euclidean_with_categorical(X, Y, np.nan, cat_mask)
+    )
