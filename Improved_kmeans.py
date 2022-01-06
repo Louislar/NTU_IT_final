@@ -17,9 +17,10 @@ np.random.seed(3)
 
 class KMeans:
     
-    def __init__(self, n_clusters=4, max_iter=1e6):
+    def __init__(self, n_clusters=4, max_iter=1e6, if_euclidean_distance=True):
         self.K = n_clusters
         self.max_iter = max_iter
+        self.if_euclidean_distance = if_euclidean_distance
         print("max iteration", max_iter)
         
     def fit(self, X):
@@ -39,8 +40,10 @@ class KMeans:
         
     def predict(self, X):
         # print(np.apply_along_axis(self.compute_label_mahalanobis, 1, X))
-        return np.apply_along_axis(self.compute_label, 1, X)
-        return np.apply_along_axis(self.compute_label_mahalanobis, 1, X)
+        if self.if_euclidean_distance: 
+            return np.apply_along_axis(self.compute_label, 1, X)
+        else: 
+            return np.apply_along_axis(self.compute_label_mahalanobis, 1, X)
 
     def compute_label(self, x):
         return np.argmin(np.sqrt(np.sum((self.centroids - x)**2, axis=1)))
@@ -75,7 +78,7 @@ class KMeans:
     def update_centroid(self, X):
         self.centroids = np.array([np.mean(X[self.labels == k], axis=0)  for k in range(self.K)])
 
-def imporved_kmeans_impute(k, t, cat_mask, dataset, pairwise_dis_func): 
+def improved_kmeans_impute(k, t, cat_mask, dataset, if_euclidean=True): 
     '''
     Input: 
     :k: k in k-means clustering
@@ -83,32 +86,40 @@ def imporved_kmeans_impute(k, t, cat_mask, dataset, pairwise_dis_func):
     :cat_mask: categorical mask, true if the attribute is categorical
     '''
     # 1. prefill with mean and mode 
-    imputed_dataset=dataset.copy()
+    prefilled_dataset=dataset.copy()
     dataset = dataset.copy()
     na_mask = np.isnan(dataset)
     mean_n_mode = np.empty(dataset.shape[1])
     mean_n_mode[~cat_mask] = np.nanmean(dataset[:, ~cat_mask], axis=0)
     mean_n_mode[cat_mask] = st.mode(dataset[:, cat_mask], nan_policy='omit')[0][0]
     expand_mean_n_mode = np.repeat(mean_n_mode[np.newaxis, :], dataset.shape[0], axis=0)
-    imputed_dataset[na_mask] = expand_mean_n_mode[na_mask]
+    prefilled_dataset[na_mask] = expand_mean_n_mode[na_mask]
     # 2. k-means with mahalanobis distance
-    kmeans_est = KMeans(n_clusters=k)
-    kmeans_est.fit(imputed_dataset)
+    kmeans_est = KMeans(n_clusters=k, if_euclidean_distance=if_euclidean)
+    kmeans_est.fit(prefilled_dataset)
     print(kmeans_est.labels)
-    # 3. TODO: Impute by Entropy weight method(Only use complete sample to impute)
+    # 3. Impute by Entropy weight method(Only use complete sample to impute)
+    #       If nocomplete sample in the cluster, than use prefill dataset. 
     complete_idx = np.where(np.sum(na_mask, axis=1)==0)[0]
     tmp_sum=0
+    imputed_dataset = dataset.copy()
+    dataset_backup = dataset.copy()
     for _cluster_i in range(k): 
         _within_cluster_idx = np.where(kmeans_est.labels==_cluster_i)[0]
         _within_cluster_complete_idx = _within_cluster_idx[np.isin(_within_cluster_idx, complete_idx)]
         _within_cluster_incomplete_idx = _within_cluster_idx[~np.isin(_within_cluster_idx, complete_idx)]
+        # If there are no complete sample in the cluster, then use prefill dataset, 
+        # and use incomplete samples for imputation
+        if len(_within_cluster_complete_idx)==0: 
+            _within_cluster_complete_idx = _within_cluster_incomplete_idx
+            dataset = prefilled_dataset
         _attr_max = np.max(dataset[_within_cluster_complete_idx], axis=0)
-        tmp_sum+=_within_cluster_incomplete_idx.shape[0]
+        # tmp_sum+=_within_cluster_incomplete_idx.shape[0]
         # print(tmp_sum)
         def _sim(x, y):
             '''
             similarity between incomplete sample/tuple x, and complete sample y
-            TODO: nemerical and categorical attribute need different similarity calculation
+            Nemerical and categorical attribute need different similarity calculation
             '''
             _na_mask = np.isnan(x)
             _ret_sim = 0
@@ -137,12 +148,15 @@ def imporved_kmeans_impute(k, t, cat_mask, dataset, pairwise_dis_func):
             # print(_sorted_sim_complete_idx)
             
             # Be careful about the samples which is empty and full of nan. 
-            # This will make divide 0. 
+            # This will make divide 0, because all the similarity will be 0. 
             # Sol: give all the weight 1. 
             _sorted_sim_complete_weight = None
             if np.sum(_sorted_sim_complete_sim)!=0: 
+                # print('_sorted_sim_complete_sim: ', _sorted_sim_complete_sim)
                 _sorted_sim_complete_sim = _sorted_sim_complete_sim / np.sum(_sorted_sim_complete_sim)
-                _sorted_sim_complete_entropy = -1 * np.multiply(_sorted_sim_complete_sim, np.log(_sorted_sim_complete_sim))
+                _sorted_sim_complete_sim_log = np.log(_sorted_sim_complete_sim)
+                _sorted_sim_complete_sim_log[np.isneginf(_sorted_sim_complete_sim_log)] = 0 # avoid log(0)=-inf
+                _sorted_sim_complete_entropy = -1 * np.multiply(_sorted_sim_complete_sim, _sorted_sim_complete_sim_log)
                 _sorted_sim_complete_weight = (1-_sorted_sim_complete_entropy) / (t-np.sum(_sorted_sim_complete_entropy))
             else: 
                 _sorted_sim_complete_weight = np.full(_sorted_sim_complete_sim.shape[0], 1/_sorted_sim_complete_sim.shape[0])
@@ -153,9 +167,9 @@ def imporved_kmeans_impute(k, t, cat_mask, dataset, pairwise_dis_func):
             # print(_sorted_sim_complete_entropy)
             # print(_sorted_sim_complete_weight)
             # impute numerical
-            _incomplete_tuple_incomplete_mask = np.isnan(dataset[_incomplete_idx])
+            _incomplete_tuple_incomplete_mask = np.isnan(dataset_backup[_incomplete_idx])
             if np.sum(_incomplete_tuple_incomplete_mask&~cat_mask)>0:
-                dataset[_incomplete_idx][_incomplete_tuple_incomplete_mask&~cat_mask] = \
+                imputed_dataset[_incomplete_idx][_incomplete_tuple_incomplete_mask&~cat_mask] = \
                     np.sum(np.multiply(dataset[_sorted_sim_complete_idx][:, _incomplete_tuple_incomplete_mask&~cat_mask].T, _sorted_sim_complete_weight), axis=1)
             # if np.sum(_incomplete_tuple_incomplete_mask)>0: 
             #     print(_incomplete_tuple_incomplete_mask)
@@ -165,15 +179,14 @@ def imporved_kmeans_impute(k, t, cat_mask, dataset, pairwise_dis_func):
             #     exit()
             # impute categorical
             if np.sum(_incomplete_tuple_incomplete_mask&cat_mask)>0:
-                dataset[_incomplete_idx][_incomplete_tuple_incomplete_mask&cat_mask] = \
+                imputed_dataset[_incomplete_idx][_incomplete_tuple_incomplete_mask&cat_mask] = \
                     weighted_mode(
                         dataset[_sorted_sim_complete_idx][:, _incomplete_tuple_incomplete_mask&cat_mask].T, 
                         _sorted_sim_complete_weight, 
                         axis=1
                     )[0].T[0]
-                
-            # exit()
-    return dataset
+        dataset = dataset_backup
+    return imputed_dataset
 
     
 
@@ -190,7 +203,7 @@ if __name__=="__main__":
     # print(est.labels)
     print(full_X[:,-1])
 
-    inputed_dataset = imporved_kmeans_impute(
+    inputed_dataset = improved_kmeans_impute(
         3, 
         5, 
         cat_mask, 
