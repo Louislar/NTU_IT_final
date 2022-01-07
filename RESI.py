@@ -70,9 +70,7 @@ class RESI_imputer:
         tuple_integrity_rate = np.sum(tuple_integrity_rate, axis=1)
         tuple_integrity_rate = tuple_integrity_rate[self.incomplete_tuple_idx]
         sorted_incomplete_tuple_idx = self.incomplete_tuple_idx[np.argsort(tuple_integrity_rate)]
-        print(sorted_incomplete_tuple_idx)
         num_in_subset = np.floor(sorted_incomplete_tuple_idx.shape[0]/self.m).astype(int)
-        print(num_in_subset)
         counter=0
         for i in range(self.m-1): 
             self.incomplete_idx_partitions[i]=\
@@ -80,9 +78,12 @@ class RESI_imputer:
             counter += num_in_subset
         self.incomplete_idx_partitions[-1] = \
             sorted_incomplete_tuple_idx[counter:] 
-    
+
     def iteratively_impute_incomplete_tuples(self): 
         iteratively_imputed_dataset = self.origin_dataset.copy()
+        for _a_incomplete_idx_subset in self.incomplete_idx_partitions: 
+            print(_a_incomplete_idx_subset)
+            pass
         pass
     def cross_correct_final_output(self): 
         pass
@@ -104,4 +105,5 @@ if __name__=='__main__':
         cat_mask=cat_mask
     )
     resi_imputer.partition_incompete_tuples()
+    resi_imputer.iteratively_impute_incomplete_tuples()
     pass
