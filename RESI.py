@@ -1,4 +1,5 @@
 import numpy as np
+from sklearn import datasets
 from sklearn.preprocessing import MinMaxScaler
 from dataset_prepare import load_iris_miss
 
@@ -7,8 +8,14 @@ from dataset_prepare import load_iris_miss
 RESI framework with sklearn knn imputer, plus customize knn imputer on categorical data
 '''
 class RESI_imputer: 
-    def __init__(self, k, dataset, cat_mask) -> None:
+    def __init__(self, k, m, dataset, cat_mask) -> None:
+        '''
+        Input: 
+        :k: K of KNN
+        :m: number of incomplete tuples subset
+        '''
         self.k = k
+        self.m = m
         self.origin_dataset = dataset
         self.cat_mask = cat_mask
         self.cat_idx = np.where(cat_mask)[0]
@@ -48,15 +55,32 @@ class RESI_imputer:
             return entropy / log_n
         entropy_dataset = np.apply_along_axis(_compute_entropy, axis=0, arr=probability_dataset)
         ## weight of each attribute
-        weight_attribute = (1 - entropy_dataset) / (entropy_dataset.shape[0] - np.sum(entropy_dataset))
+        self.weight_attribute = (1 - entropy_dataset) / (entropy_dataset.shape[0] - np.sum(entropy_dataset))
         
     def partition_incompete_tuples(self): 
         '''
         partition incomplete samples by integrity rate
         '''
-        self.incomplete_idx_partitions = []
-        # compute integrity rate
-        pass
+        self.incomplete_idx_partitions = [None for i in range(self.m)]
+        # compute tuple integrity rate
+        tuple_integrity_rate = self.origin_dataset.copy()
+        tuple_integrity_rate[self.na_mask]=0
+        tuple_integrity_rate[~self.na_mask]=1
+        tuple_integrity_rate = np.multiply(tuple_integrity_rate, self.weight_attribute)
+        tuple_integrity_rate = np.sum(tuple_integrity_rate, axis=1)
+        tuple_integrity_rate = tuple_integrity_rate[self.incomplete_tuple_idx]
+        sorted_incomplete_tuple_idx = self.incomplete_tuple_idx[np.argsort(tuple_integrity_rate)]
+        print(sorted_incomplete_tuple_idx)
+        num_in_subset = np.floor(sorted_incomplete_tuple_idx.shape[0]/self.m).astype(int)
+        print(num_in_subset)
+        counter=0
+        for i in range(self.m-1): 
+            self.incomplete_idx_partitions[i]=\
+                sorted_incomplete_tuple_idx[counter:counter+num_in_subset]
+            counter += num_in_subset
+        self.incomplete_idx_partitions[-1] = \
+            sorted_incomplete_tuple_idx[counter:] 
+    
     def iteratively_impute_incomplete_tuples(self): 
         iteratively_imputed_dataset = self.origin_dataset.copy()
         pass
@@ -75,7 +99,9 @@ if __name__=='__main__':
 
     resi_imputer = RESI_imputer(
         k=5, 
+        m=4, 
         dataset=miss_X, 
         cat_mask=cat_mask
     )
+    resi_imputer.partition_incompete_tuples()
     pass
