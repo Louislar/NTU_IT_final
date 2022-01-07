@@ -3,6 +3,8 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn.impute import KNNImputer
 from dataset_prepare import load_iris_miss
 from distance_measurement import paired_nan_euclidean_with_categorical
+from distance_measurement import nan_euclidean_with_categorical
+from KNN_impute_categorical import KNN_impute_by_voting_diff_train_test
 
 
 '''
@@ -87,13 +89,25 @@ class RESI_imputer:
             print('incomplete idx: ', _a_incomplete_idx_subset)
             imputer = KNNImputer(
                 n_neighbors=self.k, 
-                metric=lambda X,Y,**kwds: paired_nan_euclidean_with_categorical(X,Y,categorical_mask=cat_mask,**kwds)
+                metric=lambda X,Y,**kwds: paired_nan_euclidean_with_categorical(X,Y,categorical_mask=self.cat_mask,**kwds)
             )
             imputer.fit(iteratively_imputed_dataset[iteratively_complete_idx])
             numerical_predict = imputer.transform(iteratively_imputed_dataset[_a_incomplete_idx_subset])
-            print(numerical_predict)
-            pass
-        pass
+            # print(numerical_predict)
+            categorical_predict = KNN_impute_by_voting_diff_train_test(
+                k=5, 
+                dataset_train=iteratively_imputed_dataset[iteratively_complete_idx], 
+                dataset_pred=iteratively_imputed_dataset[_a_incomplete_idx_subset], 
+                pairwise_dis_func=lambda X,Y: nan_euclidean_with_categorical(X, Y, np.nan, self.cat_mask)
+            )
+            print(categorical_predict)
+            cat_mask_expand = np.repeat(self.cat_mask[np.newaxis, :], iteratively_imputed_dataset[_a_incomplete_idx_subset].shape[0], axis=0)
+            numerical_predict[cat_mask_expand] = categorical_predict[cat_mask_expand]
+            # fill in predicted tuples
+            iteratively_imputed_dataset[_a_incomplete_idx_subset] = numerical_predict
+            # complete tuple increases
+            iteratively_complete_idx = np.append(iteratively_complete_idx, _a_incomplete_idx_subset)
+        self.iteratively_imputed_dataset = iteratively_imputed_dataset
     def cross_correct_final_output(self): 
         pass
 

@@ -39,28 +39,28 @@ def KNN_impute_voting(k, dataset, pairwise_dis_func):
 def KNN_impute_by_voting_diff_train_test(k, dataset_train, dataset_pred, pairwise_dis_func): 
     '''
     訓練資料可以與預測的資料不相同，也就是可以指定，但是attribute數量要相同。
+    若是輸入相同資料集，則會在impute時使用到自己的資料
     Use KNN to impute missing values by voting. 
     Specifically for categorical attributes. 
     '''
     imputed_dataset=dataset_pred.copy()
     dis = pairwise_dis_func(dataset_train, dataset_pred)
-    print(dis)
-    print(dis.shape)
-    na_mask = np.isnan(dataset)
+    train_na_mask = np.isnan(dataset_train)
     # Not nan tuples in each attribute
-    not_na_train_tuple_idx = [np.where(~na_mask[:,i])[0] for i in range(dataset.shape[1])]
+    not_na_train_tuple_idx = [np.where(~train_na_mask[:,i])[0] for i in range(dataset_train.shape[1])]
     for _idx in range(dataset_pred.shape[0]): 
-        _dis = dis[_idx]
+        _dis = dis[:, _idx]
         sorted_similar_idx = np.argsort(_dis)
-        sorted_similar_idx = sorted_similar_idx[sorted_similar_idx!=_idx]
-        na_attr_idx = np.where(np.isnan(dataset[_idx]))[0]
-        for j in na_attr_idx: 
-            _similar_not_na_idx = sorted_similar_idx[np.isin(sorted_similar_idx, not_na_tuple_idx[j])]
+        # In a specific tuple, which attribute need to be imputed(is nan)
+        pred_na_attr_idx = np.where(np.isnan(dataset_pred[_idx]))[0]
+        for j in pred_na_attr_idx: 
+            _similar_not_na_idx = sorted_similar_idx[np.isin(sorted_similar_idx, not_na_train_tuple_idx[j])]
             # When not nan tuples greater than k, only k most similar will be referenced to impute missing value
             if _similar_not_na_idx.shape[0] > k: 
                 _similar_not_na_idx = _similar_not_na_idx[:k]
             # Vote!!
-            imputed_dataset[_idx,j] = st.mode(dataset[_similar_not_na_idx, j])[0]
+            imputed_dataset[_idx,j] = st.mode(dataset_train[_similar_not_na_idx, j])[0]
+    # print(imputed_dataset)
     return imputed_dataset
 
 if __name__=="__main__": 
@@ -73,6 +73,7 @@ if __name__=="__main__":
 
     partial_miss_X = miss_X[::10, :]
     partial_miss_mask = miss_mask[::10, :]
+    # print(full_X[::10, :])
     # print(partial_miss_X)
     # print(partial_miss_mask)
     # print(np.sum(partial_miss_mask, axis=1))
