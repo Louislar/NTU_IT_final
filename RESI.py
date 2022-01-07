@@ -1,7 +1,8 @@
 import numpy as np
-from sklearn import datasets
 from sklearn.preprocessing import MinMaxScaler
+from sklearn.impute import KNNImputer
 from dataset_prepare import load_iris_miss
+from distance_measurement import paired_nan_euclidean_with_categorical
 
 
 '''
@@ -80,9 +81,17 @@ class RESI_imputer:
             sorted_incomplete_tuple_idx[counter:] 
 
     def iteratively_impute_incomplete_tuples(self): 
+        iteratively_complete_idx = self.complete_tuple_idx.copy()
         iteratively_imputed_dataset = self.origin_dataset.copy()
         for _a_incomplete_idx_subset in self.incomplete_idx_partitions: 
-            print(_a_incomplete_idx_subset)
+            print('incomplete idx: ', _a_incomplete_idx_subset)
+            imputer = KNNImputer(
+                n_neighbors=self.k, 
+                metric=lambda X,Y,**kwds: paired_nan_euclidean_with_categorical(X,Y,categorical_mask=cat_mask,**kwds)
+            )
+            imputer.fit(iteratively_imputed_dataset[iteratively_complete_idx])
+            numerical_predict = imputer.transform(iteratively_imputed_dataset[_a_incomplete_idx_subset])
+            print(numerical_predict)
             pass
         pass
     def cross_correct_final_output(self): 
