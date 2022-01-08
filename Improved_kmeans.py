@@ -104,16 +104,21 @@ def improved_kmeans_impute(k, t, cat_mask, dataset, if_euclidean=True):
     tmp_sum=0
     imputed_dataset = dataset.copy()
     dataset_backup = dataset.copy()
+    _attr_max = np.max(dataset[complete_idx], axis=0)
+    _attr_max[_attr_max==0] = 1
     for _cluster_i in range(k): 
+        print('cluster: ', _cluster_i)
         _within_cluster_idx = np.where(kmeans_est.labels==_cluster_i)[0]
         _within_cluster_complete_idx = _within_cluster_idx[np.isin(_within_cluster_idx, complete_idx)]
         _within_cluster_incomplete_idx = _within_cluster_idx[~np.isin(_within_cluster_idx, complete_idx)]
+        print('number of complete: ', _within_cluster_complete_idx.shape[0])
+        print('number of incomplete: ', _within_cluster_incomplete_idx.shape[0])
         # If there are no complete sample in the cluster, then use prefill dataset, 
         # and use incomplete samples for imputation
         if len(_within_cluster_complete_idx)==0: 
             _within_cluster_complete_idx = _within_cluster_incomplete_idx
             dataset = prefilled_dataset
-        _attr_max = np.max(dataset[_within_cluster_complete_idx], axis=0)
+        # print(dataset[_within_cluster_complete_idx])
         # tmp_sum+=_within_cluster_incomplete_idx.shape[0]
         # print(tmp_sum)
         def _sim(x, y):
