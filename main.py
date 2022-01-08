@@ -5,6 +5,7 @@ from sklearn.metrics import f1_score
 from dataset_prepare import load_iris_miss
 from Improved_kmeans import improved_kmeans_impute
 from KNN_imputation import KNN_impute
+from RESI import RESI_impute
 
 '''
 try each imputation method and plot RMSE and f1 result
@@ -52,6 +53,12 @@ if __name__=="__main__":
         ), 
         'KNN euclidean': lambda cat_mask, miss_X: KNN_impute(
             k=5, 
+            miss_data=miss_X, 
+            cat_mask=cat_mask
+        ), 
+        'RESI KNN': lambda cat_mask, miss_X: RESI_impute(
+            k=5, 
+            m=4, 
             miss_data=miss_X, 
             cat_mask=cat_mask
         )
