@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import mean_squared_error
 from sklearn.metrics import f1_score
 from dataset_prepare import load_iris_miss
+from dataset_prepare import load_KDDCUP99_miss
 from Improved_kmeans import improved_kmeans_impute
 from KNN_imputation import KNN_impute
 from RESI import RESI_impute
@@ -63,6 +64,11 @@ if __name__=="__main__":
             cat_mask=cat_mask
         )
     }
+    # Not used
+    datasets_ = {
+        'iris': load_iris_miss, 
+        'KDDCUP99': load_KDDCUP99_miss
+    }
     rmse_incomplete_miss = {}
     f1_incomplete_miss = {}
     for i in impute_methods: 
@@ -71,32 +77,18 @@ if __name__=="__main__":
     for _incomplete_miss_rate in incomplete_miss_rate: 
         # get data
         ## iris
-        full_X, miss_X, miss_mask = load_iris_miss(_incomplete_miss_rate[1], _incomplete_miss_rate[0])
-        cat_mask_iris = np.full(full_X.shape[1], False)
-        cat_mask_iris[-1] = True
+        # full_X, miss_X, miss_mask = load_iris_miss(_incomplete_miss_rate[1], _incomplete_miss_rate[0])
+        # cat_mask_iris = np.full(full_X.shape[1], False)
+        # cat_mask_iris[-1] = True
         ## KDDCUP 99
+        full_X, miss_X, miss_mask, cat_mask_iris = load_KDDCUP99_miss(_incomplete_miss_rate[1], _incomplete_miss_rate[0])
 
-        # improved k-means (Euclidean and mahalanobis)
+
+        # Various imputation methods
         imputed_results = {
             _impute_method_nm: \
                 impute_methods[_impute_method_nm](cat_mask_iris, miss_X) for _impute_method_nm in impute_methods
         }
-        # imputed_results = {
-        #     'improved k-means euclidean': improved_kmeans_impute(
-        #         3, 
-        #         5, 
-        #         cat_mask_iris, 
-        #         miss_X, 
-        #         if_euclidean=True
-        #     ), 
-        #     'improved k-means hahalanobis': improved_kmeans_impute(
-        #         3, 
-        #         5, 
-        #         cat_mask_iris, 
-        #         miss_X, 
-        #         if_euclidean=False
-        #     )
-        # }
         # Evaluation
         for _imputed_method in imputed_results: 
             cat_mask_expand = np.repeat(cat_mask_iris[np.newaxis, :], full_X.shape[0], axis=0)

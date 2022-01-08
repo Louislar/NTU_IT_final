@@ -129,7 +129,13 @@ def improved_kmeans_impute(k, t, cat_mask, dataset, if_euclidean=True):
             _ret_sim += np.sum(x[(~_na_mask)&(cat_mask)]!=y[(~_na_mask)&(cat_mask)])
             if np.isnan(_ret_sim): 
                 print('An error occur: ', x, ', ', y)
+                print(np.sum( 1 - np.divide(np.abs(x[(~_na_mask)&(~cat_mask)]-y[~_na_mask&(~cat_mask)]), _attr_max[~_na_mask&(~cat_mask)]) ))
+                print(np.sum(x[(~_na_mask)&(cat_mask)]!=y[(~_na_mask)&(cat_mask)]))
+                print(np.abs(x[(~_na_mask)&(~cat_mask)]-y[~_na_mask&(~cat_mask)]))
+                print(_attr_max[~_na_mask&(~cat_mask)])
                 print(_attr_max)
+                print(_ret_sim)
+                exit()
             return _ret_sim
             
         for _incomplete_idx in _within_cluster_incomplete_idx: 
