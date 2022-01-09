@@ -20,12 +20,10 @@ def draw_impute_eval(x, y_dict, name_title='no title', name_x='no name', final_s
     for k in y_dict: 
         plt.plot(x, y_dict[k], label=k)
     plt.legend()
+    plt.savefig('{0}_{1}_2000.png'.format(name_title, name_x))
     if final_show: 
         plt.show()
 
-# KNN imputer
-
-# improved k-means imputer
 if __name__=="__main__": 
     incomplete_miss_rate = [
         [1/2, 0.1], [1/3, 0.15], [1/2, 0.2], 
@@ -77,11 +75,11 @@ if __name__=="__main__":
     for _incomplete_miss_rate in incomplete_miss_rate: 
         # get data
         ## iris
-        # full_X, miss_X, miss_mask = load_iris_miss(_incomplete_miss_rate[1], _incomplete_miss_rate[0])
-        # cat_mask_iris = np.full(full_X.shape[1], False)
-        # cat_mask_iris[-1] = True
+        full_X, miss_X, miss_mask = load_iris_miss(_incomplete_miss_rate[1], _incomplete_miss_rate[0])
+        cat_mask_iris = np.full(full_X.shape[1], False)
+        cat_mask_iris[-1] = True
         ## KDDCUP 99
-        full_X, miss_X, miss_mask, cat_mask_iris = load_KDDCUP99_miss(_incomplete_miss_rate[1], _incomplete_miss_rate[0])
+        # full_X, miss_X, miss_mask, cat_mask_iris = load_KDDCUP99_miss(_incomplete_miss_rate[1], _incomplete_miss_rate[0])
 
 
         # Various imputation methods
@@ -97,7 +95,7 @@ if __name__=="__main__":
             rmse = rmse**(1/2)
             ## f1
             f1 = f1_score(full_X[miss_mask&cat_mask_expand], imputed_results[_imputed_method][miss_mask&cat_mask_expand], average='micro')
-            # TODO: 改成使用dictionary儲存eval result
+            # 改成使用dictionary儲存eval result
             rmse_incomplete_miss[_imputed_method].append(rmse)
             f1_incomplete_miss[_imputed_method].append(f1)
     print(rmse_incomplete_miss)
@@ -108,3 +106,7 @@ if __name__=="__main__":
     draw_impute_eval(incomplete_miss_rate_str, f1_incomplete_miss
         , name_title='iris', name_x='f1'
     )
+    with open('result_2000.txt', 'w') as openfile: 
+        openfile.writelines(str(rmse_incomplete_miss))
+        openfile.writelines('\n')
+        openfile.writelines(str(f1_incomplete_miss))

@@ -17,7 +17,7 @@ np.random.seed(3)
 
 class KMeans:
     
-    def __init__(self, n_clusters=4, max_iter=1e6, if_euclidean_distance=True):
+    def __init__(self, n_clusters=4, max_iter=1e5, if_euclidean_distance=True):
         self.K = n_clusters
         self.max_iter = max_iter
         self.if_euclidean_distance = if_euclidean_distance
@@ -35,7 +35,7 @@ class KMeans:
             self.update_centroid(X)
             counter+=1
             if counter%100==0: 
-                print(counter)
+                print('improved k-means training: ', counter)
         return self
         
     def predict(self, X):

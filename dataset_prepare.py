@@ -39,6 +39,10 @@ def load_KDDCUP99_miss(miss_rate, complete_ratio):
     Ref: convert categorical columns to integer codes: https://stackoverflow.com/questions/32011359/convert-categorical-data-in-pandas-dataframe
     '''
     X,Y = fetch_kddcup99(return_X_y=True, percent10=True)
+    # only use 2000 tuples
+    rand_choice_idx = np.random.choice(X.shape[0], 2000)
+    X = X[rand_choice_idx, :]
+    print('number of samples: ', X.shape[0])
     cat_idx = [1, 2, 3, 6, 11, 20, 21]
     n_cat_idx = np.arange(X.shape[1])
     n_cat_idx = n_cat_idx[~np.isin(n_cat_idx, cat_idx)]
@@ -83,8 +87,8 @@ if __name__=="__main__":
 
     # KDDCUP99
     load_KDDCUP99_miss(0.1, 0.5)
-    load_KDDCUP99_miss(0.15, 1/3)
-    load_KDDCUP99_miss(0.2, 0.5)
-    load_KDDCUP99_miss(0.2, 1/3)
-    load_KDDCUP99_miss(0.2, 1/6)
-    load_KDDCUP99_miss(0.3, 0.5)
+    # load_KDDCUP99_miss(0.15, 1/3)
+    # load_KDDCUP99_miss(0.2, 0.5)
+    # load_KDDCUP99_miss(0.2, 1/3)
+    # load_KDDCUP99_miss(0.2, 1/6)
+    # load_KDDCUP99_miss(0.3, 0.5)
